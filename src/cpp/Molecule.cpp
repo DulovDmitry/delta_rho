@@ -179,19 +179,44 @@ void Molecule::read_basis_functions_from_molden() {
 }
 
 void Molecule::read_orbitals_from_molden() {
+    std::cout << "begin\n";
     const std::string start_block = "[MO]";
+
+    std::cout << "finding MO block\n";
     size_t start_index = molden_data.find(start_block);
     if (start_index == std::string::npos)
         throw std::runtime_error("Class Molecule. There is no [MO] block in the file");
 
+    std::cout << "creating substring\n";
     start_index += start_block.size();
     std::string fragment = molden_data.substr(start_index);
+    // std::cout << fragment << std::endl;
 
-    std::regex mo_split(R"((?=Sym=))");
-    std::sregex_token_iterator it(fragment.begin(), fragment.end(), mo_split, -1);
-    std::sregex_token_iterator end;
-    std::vector<std::string> blocks(it, end);
+    std::cout << "dividing substring into blocks\n";
+    // std::regex mo_split(R"((?=Sym=))");
+    // std::sregex_token_iterator it(fragment.begin(), fragment.end(), mo_split, -1);
+    // std::sregex_token_iterator end;
+    // std::vector<std::string> blocks(it, end);
+    // for (auto s : blocks) std::cout << s << std::endl;
 
+    std::string delimiter = "Sym=";
+    std::vector<std::string> blocks;
+
+    size_t start = 0;
+    size_t end = 0;
+
+    while (end != std::string::npos) {
+        end = fragment.find(delimiter, start);
+        std::string block = delimiter + fragment.substr(start, end - start);
+        // std::cout << block << std::endl;
+
+        blocks.push_back(block);
+        start = end + delimiter.length();
+    }
+
+    std::cout << "Size of std::vector<std::string> blocks = " << blocks.size() << std::endl;
+
+    std::cout << "reading blocks\n";
     for (size_t i = 1; i < blocks.size(); ++i) {
         std::istringstream block(blocks[i]);
         std::string line;
@@ -219,6 +244,8 @@ void Molecule::read_orbitals_from_molden() {
 
         orbitals.emplace_back(occ, coefs);
     }
+
+    std::cout << "Size of std::vector<Orbital> orbitals = " << orbitals.size() << std::endl;
 }
 
 double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const {

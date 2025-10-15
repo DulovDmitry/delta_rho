@@ -274,12 +274,19 @@ double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const
         return res;
     } else if (!orbitals.empty()) {
         double res = 0.0;
-        for (size_t i = 0; i < orbitals.size(); ++i) {
-            const auto& orb = orbitals[i];
-            if (orb.get_occupancy() == 0) continue;
+        int i = 0;
+        for (const auto& orb : orbitals){
+            if (orb.get_occupancy() == 0) break;
             double val = orbital_value_at_point(point, i);
             res += orb.get_occupancy() * val * val;
+            i++;
         }
+        // for (size_t i = 0; i < orbitals.size(); ++i) {
+        //     const auto& orb = orbitals[i];
+        //     if (orb.get_occupancy() == 0) continue;
+        //     double val = orbital_value_at_point(point, i);
+        //     res += orb.get_occupancy() * val * val;
+        // }
         return res;
     } else {
         return 0.0;

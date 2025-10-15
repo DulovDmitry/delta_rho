@@ -15,8 +15,8 @@ public:
                   const std::vector<double>& exponents,
                   const std::string& shell,
                   const std::array<double, 3>& position,
-                  const std::string& label = "",
-                  const std::string& index = "");
+                  const std::string& index = "",
+                  const std::string& label = "");
 
     std::string repr() const;
 
@@ -27,8 +27,8 @@ private:
     std::vector<double> exponents_;
     std::string shell_;
     std::array<double, 3> position_;
-    std::string label_;
     std::string index_;
+    std::string label_;
 
     std::unordered_map<double, double> s_res_dict_;
 

@@ -3,18 +3,20 @@
 #include <sstream>
 #include <stdexcept>
 
+#define R_THRESHOLD 10
+
 BasisFunction::BasisFunction(const std::vector<double>& coefficients,
                              const std::vector<double>& exponents,
                              const std::string& shell,
                              const std::array<double, 3>& position,
-                             const std::string& label,
-                             const std::string& index)
+                             const std::string& index,
+                             const std::string& label)
     : coefficients_(coefficients),
       exponents_(exponents),
       shell_(shell),
       position_(position),
-      label_(label),
-      index_(index) {}
+      index_(index),
+      label_(label) {}
 
 std::string BasisFunction::repr() const {
     std::ostringstream oss;
@@ -52,8 +54,8 @@ double BasisFunction::s(const std::array<double, 3>& point) const {
     double dz = position_[2] - point[2];
     double squared_radius_vector = ANGSTROM_TO_BOHR_SQUARED * (dx * dx + dy * dy + dz * dz);
 
-    if (squared_radius_vector > 10.0)
-        return 0.0;
+    // if (squared_radius_vector > R_THRESHOLD)
+    //     return 0.0;
 
     // auto it = s_res_dict_.find(squared_radius_vector);
     // if (it != s_res_dict_.end())
@@ -73,8 +75,8 @@ double BasisFunction::p(const std::array<double, 3>& point) const {
     double dz = point[2] - position_[2];
     double squared_radius_vector = ANGSTROM_TO_BOHR_SQUARED * (dx * dx + dy * dy + dz * dz);
 
-    if (squared_radius_vector > 10.0)
-        return 0.0;
+    // if (squared_radius_vector > R_THRESHOLD)
+    //     return 0.0;
 
     double res = 0.0;
     if (index_ == "x") {

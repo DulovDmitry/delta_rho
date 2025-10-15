@@ -18,25 +18,31 @@ Molecule::Molecule(const std::string& molden_file_name) {
     
     std::cout << "** Reading atom data ..." << std::endl;
     read_atoms_from_molden();
+    #ifdef DEBUG_MODE
     for (auto a : atoms) {
-        std::cout << a.repr() << std::endl;
+        std::cout << a.repr() << "\n\n";
     }
     std::cout << std::endl;
-    
+    #endif
+
     std::cout << "** Reading GTO data ..." << std::endl;
     read_basis_functions_from_molden();
+    #ifdef DEBUG_MODE
     for (auto b : basis_functions) {
-        std::cout << b.repr() << std::endl;
+        std::cout << b.repr() << "\n\n";
     }
     std::cout << std::endl;
     
-    
+    #endif
+
     std::cout << "** Reading MO data ..." << std::endl;
     read_orbitals_from_molden();
+    #ifdef DEBUG_MODE
     for (auto o : orbitals) {
         std::cout << o.repr() << std::endl;
     }
     std::cout << std::endl;
+    #endif
 
     std::cout << "A molden file has been read!" << std::endl;
 }
@@ -283,16 +289,19 @@ double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const
 double Molecule::orbital_value_at_point(const std::array<double, 3>& point, size_t number) const {
     if (number >= orbitals.size()) return 0.0;
 
-    std::vector<double> values;
-    values.reserve(basis_functions.size());
-    for (const auto& bf : basis_functions)
-        values.push_back(bf.value_at_point(point));
-
     const auto& coeffs = orbitals[number].get_coefficients();
+
+    if (basis_functions.size() != coeffs.size()) {
+        throw std::runtime_error("Class Molecule. The number of basis functions is not equal to the number of coefficients");
+    }
+
     double sum = 0.0;
-    size_t n = std::min(values.size(), coeffs.size());
-    for (size_t i = 0; i < n; ++i)
-        sum += values[i] * coeffs[i];
+    auto N = basis_functions.size();
+    for (size_t i = 0; i < N; ++i) {
+        // if (coeffs[i] == 0) continue;
+
+        sum += basis_functions[i].value_at_point(point) * coeffs[i];
+    }
 
     return sum;
 }

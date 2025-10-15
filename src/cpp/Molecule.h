@@ -1,6 +1,8 @@
 #ifndef MOLECULE_H
 #define MOLECULE_H
 
+// #define DEBUG_MODE
+
 #include <string>
 #include <vector>
 #include <array>
@@ -36,6 +38,8 @@ public:
     double get_y_max() const { return y_max; }
     double get_z_min() const { return z_min; }
     double get_z_max() const { return z_max; }
+
+    std::vector<Atom> get_atoms() const { return atoms; }
 
 private:
     std::vector<Atom> atoms;

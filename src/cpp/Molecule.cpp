@@ -276,7 +276,9 @@ double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const
         double res = 0.0;
         int i = 0;
         for (const auto& orb : orbitals){
-            if (orb.get_occupancy() == 0) break;
+            if (orb.get_occupancy() == 0) {
+                break;
+            }
             double val = orbital_value_at_point(point, i);
             res += orb.get_occupancy() * val * val;
             i++;

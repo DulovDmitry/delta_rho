@@ -7,6 +7,8 @@
 #include <vector>
 #include <array>
 #include <optional>
+#include <cblas.h>
+#include <omp.h>
 
 #include "Atom.h"
 #include "BasisFunction.h"

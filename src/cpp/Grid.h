@@ -7,6 +7,8 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "Molecule.h"
+
 class Grid {
 public:
     Grid();
@@ -18,7 +20,6 @@ public:
     std::vector<double> calculate_scfp_values(const Molecule& molecule);
 
 protected:
-    std::vector<double> scfp_values;
 
     // координаты точек (для общих сеток)
     std::vector<double> x, y, z;
@@ -30,7 +31,6 @@ public:
                   double radius = 3.0, std::array<double, 3> center = {0.0, 0.0, 0.0});
 
 private:
-    std::vector<double> x, y, z;
     std::vector<double> r, phi, theta;
     std::array<double, 3> center_point;
     double delta_phi, delta_theta, delta_r;
@@ -42,16 +42,14 @@ public:
                           int x_points = 10, int y_points = 10, int z_points = 10,
                           std::array<double, 3> center = {0.0, 0.0, 0.0});
 
-    static RegularOrthogonalGrid from_molecule(double x_min, double x_max,
-                                               double y_min, double y_max,
-                                               double z_min, double z_max,
-                                               int x_points = 20, int y_points = 20, int z_points = 20);
+    RegularOrthogonalGrid(const Molecule& molecule, int x_points = 20, int y_points = 20, int z_points = 20);
+
+    void create_grid(double x_length, double y_length, double z_length, int x_points_count, int y_points_count, int z_points_count, std::array<double, 3> center);
 
     double scfp_integral() const override;
 
 private:
     std::vector<double> x_points, y_points, z_points;
-    std::vector<double> x, y, z;
     double delta_x, delta_y, delta_z, delta_V;
     std::array<double, 3> center_point;
 };
@@ -65,7 +63,6 @@ public:
 
 private:
     std::vector<double> x_points, y_points, z_points;
-    std::vector<double> x, y, z;
     std::array<double, 3> center_point;
 };
 

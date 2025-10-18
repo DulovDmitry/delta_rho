@@ -10,7 +10,7 @@
 #include <iterator>
 
 Molecule::Molecule()
-    : x_min(0), x_max(0), y_min(0), y_max(0), z_min(0), z_max(0) {}
+    : x_min(0), x_max(0), y_min(0), y_max(0), z_min(0), z_max(0), number_of_occupied_orbitals(0) {}
 
 Molecule::Molecule(const std::string& molden_file_name) {
     std::cout << "** Loading a molden file ..." << std::endl;
@@ -79,8 +79,8 @@ void Molecule::read_atoms_from_molden() {
 
         std::istringstream ls(line);
         std::string label;
-        int number;
-        double _, x, y, z;
+        int number, charge;
+        double x, y, z;
         std::vector<std::string> tokens;
         std::string token;
         while (ls >> token) tokens.push_back(token);
@@ -89,11 +89,12 @@ void Molecule::read_atoms_from_molden() {
 
         label = tokens[0];
         number = std::stoi(tokens[1]);
+        charge = std::stoi(tokens[2]);
         x = std::stod(tokens[3]) * 0.529177249;
         y = std::stod(tokens[4]) * 0.529177249;
         z = std::stod(tokens[5]) * 0.529177249;
 
-        atoms.emplace_back(std::array<double, 3>{x, y, z}, label, number, 0.0);
+        atoms.emplace_back(std::array<double, 3>{x, y, z}, label, number, charge);
     }
 
     update_molecule_limits();
@@ -223,6 +224,7 @@ void Molecule::read_orbitals_from_molden() {
     std::cout << "Size of std::vector<std::string> blocks = " << blocks.size() << std::endl;
 
     std::cout << "reading blocks\n";
+    int n = 0;
     for (size_t i = 1; i < blocks.size(); ++i) {
         std::istringstream block(blocks[i]);
         std::string line;
@@ -240,6 +242,10 @@ void Molecule::read_orbitals_from_molden() {
                 occ = std::stod(occ_line.substr(pos + 1));
         }
 
+        if (occ != 0) {
+            n++;
+        }
+
         std::vector<double> coefs;
         for (size_t j = 4; j < lines.size(); ++j) {
             std::istringstream ls(lines[j]);
@@ -250,6 +256,7 @@ void Molecule::read_orbitals_from_molden() {
 
         orbitals.emplace_back(occ, coefs);
     }
+    number_of_occupied_orbitals = n;
 
     std::cout << "Size of std::vector<Orbital> orbitals = " << orbitals.size() << std::endl;
 }

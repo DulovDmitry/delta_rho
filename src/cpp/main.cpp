@@ -5,13 +5,17 @@
 #include "Grid.h"
 
 int main() {
-	std::string filename = "";
+	std::string filename = "/mnt/d/lambda_project/BSF-33_opt_b3lyp.molden.input";
 	auto mol = Molecule(filename);
 	// auto mol = Molecule("../../H2.molden.input");
 
+	for (auto a : (mol.get_orbitals() + 1)->get_coefficients()) {
+		std::cout << a << "\n";
+	}
+
 	auto p = mol.get_atoms()[0].get_position();
 
-	auto grid = RegularOrthogonalGrid(mol);
+	auto grid = RegularOrthogonalGrid(mol, 50, 50, 50);
 
 	auto tStart = std::chrono::high_resolution_clock::now();
 
@@ -27,9 +31,12 @@ int main() {
 	std::chrono::duration<double> elapsed = tEnd - tStart;
 	std::cout << "Time taken: " << elapsed.count() << "s\n";
 
-	for (auto a : res) {
-		std::cout << a << "\n";
-	}
+	grid.print_scfp_values();
+	grid.write_cube_file();
+	
+	// for (auto a : res) {
+	// 	std::cout << a << "\n";
+	// }
 
 
 	tStart = std::chrono::high_resolution_clock::now();

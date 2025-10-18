@@ -6,6 +6,8 @@
 #include <string>
 #include <cmath>
 #include <stdexcept>
+#include <fstream>
+#include <iomanip>
 
 #include "Molecule.h"
 
@@ -15,14 +17,20 @@ public:
     virtual ~Grid() = default;
 
     virtual double scfp_integral() const = 0;
+    std::vector<double> calculate_scfp_values(const Molecule& molecule);
 
     std::vector<double> scfp_values;
-    std::vector<double> calculate_scfp_values(const Molecule& molecule);
+
+    void print_scfp_values();
 
 protected:
 
+    Molecule mol;
+
     // координаты точек (для общих сеток)
     std::vector<double> x, y, z;
+    int batch_size;
+    int number_of_batches;
 };
 
 class SphericalGrid : public Grid {
@@ -45,11 +53,13 @@ public:
     RegularOrthogonalGrid(const Molecule& molecule, int x_points = 20, int y_points = 20, int z_points = 20);
 
     void create_grid(double x_length, double y_length, double z_length, int x_points_count, int y_points_count, int z_points_count, std::array<double, 3> center);
-
     double scfp_integral() const override;
+
+    void write_cube_file();
 
 private:
     std::vector<double> x_points, y_points, z_points;
+    int number_of_x_points, number_of_y_points, number_of_z_points;
     double delta_x, delta_y, delta_z, delta_V;
     std::array<double, 3> center_point;
 };

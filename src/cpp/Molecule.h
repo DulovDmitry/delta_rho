@@ -42,6 +42,11 @@ public:
     double get_z_max() const { return z_max; }
 
     std::vector<Atom> get_atoms() const { return atoms; }
+    int get_number_of_orbitals() const { return orbitals.size(); }
+    int get_number_of_occupied_orbitals() const { return number_of_occupied_orbitals; }
+    const Orbital* get_orbitals() const { return orbitals.data(); }
+    const BasisFunction* get_basis_functions() const { return basis_functions.data(); }
+
 
 private:
     std::vector<Atom> atoms;
@@ -52,6 +57,8 @@ private:
     std::string molden_data;
 
     double x_min, x_max, y_min, y_max, z_min, z_max;
+
+    int number_of_occupied_orbitals;
 
     // Вспомогательные функции
     std::string read_file(const std::string& filename) const;

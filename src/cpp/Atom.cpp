@@ -5,7 +5,7 @@
 Atom::Atom(const std::array<double, 3>& position,
            const std::string& label,
            int number,
-           double charge)
+           int charge)
     : position_(position), label_(label), number_(number), charge_(charge) {}
 
 std::string Atom::repr() const {

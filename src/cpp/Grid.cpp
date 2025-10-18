@@ -4,27 +4,125 @@
 #include <iostream>
 #include <stdexcept>
 
-Grid::Grid() : scfp_values(){}
+
+Grid::Grid() : scfp_values(), batch_size(0), number_of_batches(0) {}
 
 std::vector<double> Grid::calculate_scfp_values(const Molecule& molecule) {
-    if (!molecule.has_density_matrix() && !molecule.has_orbitals()) {
-        throw std::runtime_error("The molecule has neither density matrix nor orbitals");
+    // Old version
+
+    // if (!molecule.has_density_matrix() && !molecule.has_orbitals()) {
+    //     throw std::runtime_error("The molecule has neither density matrix nor orbitals");
+    // }
+
+    // scfp_values.clear();
+    // scfp_values.reserve(x.size());
+
+    // std::cout << "starting scfp calcilation\nNumber of grid points: " << x.size() << std::endl;
+
+    // #pragma omp parallel for schedule(dynamic)
+    // for (size_t i = 0; i < x.size(); ++i) {
+    //     std::array<double, 3> point = {x[i], y[i], z[i]};
+    //     double val = molecule.scfp_density_at_point(point);
+    //     scfp_values.push_back(val);
+    // }
+
+    mol = molecule;
+
+    const int M = molecule.get_number_of_orbitals();       // число орбиталей
+    const int nocc = molecule.get_number_of_occupied_orbitals();    // число занятых орбиталей
+    const int G = x.size();    // число точек в сетке
+
+    std::cout << M << std::endl;
+    std::cout << nocc << std::endl;
+    std::cout << G << std::endl;
+
+    // std::ofstream file("debug.txt");
+    // file << "C_occ\n\n";
+
+    std::vector<double> C_occ; // size M * nocc
+    auto orbs = molecule.get_orbitals();
+    for (int i = 0; i < nocc; ++i) {
+        // std::cout << "MO number " << i << ": " << (orbs + i)->get_occupancy() << "\n";
+        auto coefs = (orbs + i)->get_coefficients();
+        for (const auto &a : coefs){
+            C_occ.push_back(a);
+            // file << a << "\n";
+        }
     }
 
-    scfp_values.clear();
-    scfp_values.reserve(x.size());
+    // std::cout << "C_occ size = " << C_occ.size() << "\n";
 
-    std::cout << "starting scfp calcilation\nNumber of grid points: " << x.size() << std::endl;
+    // Плотность (на всех точках)
+    scfp_values.resize(G);
+
+    batch_size = 5000;
+
+    std::cout << "batch_size = " << batch_size << "\n";
+
+    // file << "\n\nChi\n\n";
+    auto bf = molecule.get_basis_functions();
+
+    // omp_set_num_threads(8);
 
     #pragma omp parallel for schedule(dynamic)
-    for (size_t i = 0; i < x.size(); ++i) {
-        std::array<double, 3> point = {x[i], y[i], z[i]};
-        double val = molecule.scfp_density_at_point(point);
-        scfp_values.push_back(val);
+    for (int batch_start = 0; batch_start < G; batch_start += batch_size) {
+        int B = std::min(batch_size, G - batch_start);
+
+        std::vector<double> Chi(B * M); //size B * M
+        std::vector<double> Psi(B * nocc, 0.0);
+
+        // 1. Вычисляем значения базисных функций в точках батча
+
+        for (int i = 0; i < B; ++i) {
+            int point_index = batch_start + i;
+            std::array<double, 3> point = {x[point_index], y[point_index], z[point_index]};
+
+            for (int j = 0; j < M; ++j) {
+                Chi[i * M + j] =(bf + j)->value_at_point(point);
+            }
+        }
+
+
+        // std::cout << "Chi size = " << Chi.size() << "\n";
+        // for (auto a : Chi) file << a << "\n";
+
+        // 2. Умножаем Chi × C_occ → Psi
+        //     Chi: (B×M)
+        //     C_occ: (M×nocc)
+        //     Psi: (B×nocc)
+        cblas_dgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                    B, nocc, M,
+                    1.0,
+                    Chi.data(), M,
+                    C_occ.data(), nocc,
+                    0.0,
+                    Psi.data(), nocc);
+
+        // 3. Считаем плотность: rho = 2 * sum_i |Psi_i|^2
+        for (int g = 0; g < B; ++g) {
+            double val = 0.0;
+            for (int i = 0; i < nocc; ++i) {
+                double psi = Psi[g * nocc + i];
+                val += psi * psi;
+            }
+            // std::cout << val << std::endl;
+            scfp_values[batch_start + g] = 2.0 * val;
+        }
     }
 
+    // file.close();
     return scfp_values;
 }
+
+void Grid::print_scfp_values() {
+    std::ofstream file("scfp_values.txt");
+    for (size_t i = 0; i < x.size(); ++i) {
+        file << x[i] << "\t" << y[i] << "\t" << z[i] << "\t" << scfp_values[i] << "\n";
+    }
+    file.close();
+}
+
+
 
 // -------- SphericalGrid --------
 
@@ -74,10 +172,6 @@ RegularOrthogonalGrid::RegularOrthogonalGrid(double x_length, double y_length, d
     : center_point(center)
 {
     create_grid(x_length, y_length, z_length, x_points_count, y_points_count, z_points_count, center);
-
-    for (auto p : x) {
-        std::cout << p << "\n";
-    }
 }
 
 RegularOrthogonalGrid::RegularOrthogonalGrid(const Molecule& molecule, int x_points_count, int y_points_count, int z_points_count)
@@ -92,15 +186,15 @@ RegularOrthogonalGrid::RegularOrthogonalGrid(const Molecule& molecule, int x_poi
     double y_margin = 2.0;
     double z_margin = 2.0;
 
+    number_of_x_points = x_points_count;
+    number_of_y_points = y_points_count;
+    number_of_z_points = z_points_count;
+
     double x_length = molecule.get_x_max() - molecule.get_x_min() + x_margin;
     double y_length = molecule.get_y_max() - molecule.get_y_min() + y_margin;
     double z_length = molecule.get_z_max() - molecule.get_z_min() + z_margin;
 
     create_grid(x_length, y_length, z_length, x_points_count, y_points_count, z_points_count, center_point);
-
-    for (auto p : x) {
-        std::cout << p << "\n";
-    }
 }
 
 void RegularOrthogonalGrid::create_grid(double x_length, double y_length, double z_length,
@@ -137,6 +231,76 @@ double RegularOrthogonalGrid::scfp_integral() const {
     double sum = std::accumulate(scfp_values.begin(), scfp_values.end(), 0.0);
     return sum * delta_V;
 }
+
+void RegularOrthogonalGrid::write_cube_file()
+{
+    std::ofstream cube("scfp_density.cub");
+    cube << std::fixed << std::setprecision(6);
+
+    if (!cube.is_open()) {
+        throw std::runtime_error("Cannot open file");
+    }
+
+    // ───── Заголовок ─────
+    cube << "CUBE FILE GENERATED BY SCF CALCULATION\n";
+    cube << "Electron density\n";
+
+    auto atoms = mol.get_atoms();
+
+    // Найдём начало сетки и векторы шагов
+    double x0 = x.front();
+    double y0 = y.front();
+    double z0 = z.front();
+
+    // ───── Первая строка: число атомов и начало сетки ─────
+    cube << std::setw(5) << atoms.size()
+         << std::setw(12) << x0 * ANGSTROM_TO_BOHR
+         << std::setw(12) << y0 * ANGSTROM_TO_BOHR
+         << std::setw(12) << z0 * ANGSTROM_TO_BOHR << "\n";
+
+    // ───── Следующие три строки: размерность и векторы шагов ─────
+    cube << std::setw(5) << number_of_x_points
+         << std::setw(12) << delta_x * ANGSTROM_TO_BOHR
+         << std::setw(12) << 0.0
+         << std::setw(12) << 0.0 << "\n";
+
+    cube << std::setw(5) << number_of_y_points
+         << std::setw(12) << 0.0
+         << std::setw(12) << delta_y * ANGSTROM_TO_BOHR
+         << std::setw(12) << 0.0 << "\n";
+
+    cube << std::setw(5) << number_of_z_points
+         << std::setw(12) << 0.0
+         << std::setw(12) << 0.0
+         << std::setw(12) << delta_z * ANGSTROM_TO_BOHR << "\n";
+
+    // ───── Координаты атомов ─────
+    for (const auto &a : atoms) {
+        cube << std::setw(5) << a.get_charge()
+             << std::setw(12) << 0.0     // формальный заряд (обычно 0)
+             << std::setw(12) << a.get_position()[0] * ANGSTROM_TO_BOHR
+             << std::setw(12) << a.get_position()[1] * ANGSTROM_TO_BOHR
+             << std::setw(12) << a.get_position()[2] * ANGSTROM_TO_BOHR << "\n";
+    }
+
+    // ───── Значения плотности ─────
+    // Порядок: x изменяется быстрее всего, затем y, затем z
+    int idx = 0;
+    for (int k = 0; k < number_of_z_points; ++k) {
+        for (int j = 0; j < number_of_y_points; ++j) {
+            for (int i = 0; i < number_of_x_points; ++i, ++idx) {
+                cube << std::scientific << std::setprecision(5)
+                     << std::setw(13) << scfp_values[idx];
+                if ((i + 1) % 6 == 0) cube << "\n"; // 6 значений на строку
+            }
+            cube << "\n";
+        }
+    }
+
+    cube.close();
+    std::cout << "Cube file has been written" << std::endl;
+}
+
 
 // -------- IrregularOrthogonalGrid --------
 

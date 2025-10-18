@@ -95,6 +95,32 @@ double BasisFunction::p(const std::array<double, 3>& point) const {
     return res;
 }
 
-double BasisFunction::d(const std::array<double, 3>& /*point*/) const {
-    return 0.0;
+double BasisFunction::d(const std::array<double, 3>& point) const {
+    double dx = point[0] - position_[0];
+    double dy = point[1] - position_[1];
+    double dz = point[2] - position_[2];
+    double squared_radius_vector = ANGSTROM_TO_BOHR_SQUARED * (dx * dx + dy * dy + dz * dz);
+
+    double res = 0.0;
+
+    if (index_ == "z2") {
+        for (size_t i = 0; i < coefficients_.size(); ++i)
+            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * (2*dz*dz - dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
+    } else if (index_ == "xz") {
+        for (size_t i = 0; i < coefficients_.size(); ++i)
+            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * dx * dz * std::exp(-exponents_[i] * squared_radius_vector);
+    } else if (index_ == "yz") {
+        for (size_t i = 0; i < coefficients_.size(); ++i)
+            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * dy * dz * std::exp(-exponents_[i] * squared_radius_vector);
+    } else if (index_ == "x2y2") {
+        for (size_t i = 0; i < coefficients_.size(); ++i)
+            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * (dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
+    } else if (index_ == "xy") {
+        for (size_t i = 0; i < coefficients_.size(); ++i)
+            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * dx * dy * std::exp(-exponents_[i] * squared_radius_vector);
+    } else {
+        throw std::runtime_error("Class BasisFunction: Unknown p-orbital index");
+    }
+    
+    return res;
 }

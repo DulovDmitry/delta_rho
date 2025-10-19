@@ -7,6 +7,8 @@
 #include <vector>
 #include <array>
 #include <optional>
+#include <iostream>
+#include <chrono>
 #include <cblas.h>
 #include <omp.h>
 

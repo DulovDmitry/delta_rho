@@ -1,28 +1,19 @@
-#include <iostream>
-#include <chrono>
-
 #include "Molecule.h"
 #include "Grid.h"
 
 int main() {
-	std::string filename = "/mnt/d/lambda_project/BSF-33_opt_b3lyp.molden.input";
-	auto mol = Molecule(filename);
 	// auto mol = Molecule("../../H2.molden.input");
+	auto mol = Molecule("../../indene.molden.input");
 
-	for (auto a : (mol.get_orbitals() + 1)->get_coefficients()) {
-		std::cout << a << "\n";
-	}
+	// std::cout << std::scientific << std::setprecision(12);
+	// for (auto a : (mol.get_orbitals() + 1)->get_coefficients()) {
+	// 	std::cout << a << "\n";
+	// }
 
 	auto p = mol.get_atoms()[0].get_position();
-
-	auto grid = RegularOrthogonalGrid(mol, 50, 50, 50);
+	auto grid = RegularOrthogonalGrid(mol, 100, 100, 100);
 
 	auto tStart = std::chrono::high_resolution_clock::now();
-
-	// #pragma omp parallel for schedule(dynamic)
-	// for (int i = 0; i < 1000; ++i){
-	// 	double dens = mol.scfp_density_at_point(p);
-	// }
 
 	auto res = grid.calculate_scfp_values(mol);
 
@@ -33,11 +24,9 @@ int main() {
 
 	grid.print_scfp_values();
 	grid.write_cube_file();
-	
-	// for (auto a : res) {
-	// 	std::cout << a << "\n";
-	// }
 
+	std::cout << "Integral of electron density\nCalculated = " << grid.scfp_integral() << "\nExpected = " << mol.get_number_of_occupied_orbitals()*2 << std::endl;
+	
 
 	tStart = std::chrono::high_resolution_clock::now();
 	double dens = mol.scfp_density_at_point(p);

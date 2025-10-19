@@ -70,10 +70,10 @@ double BasisFunction::s(const std::array<double, 3>& point) const {
 }
 
 double BasisFunction::p(const std::array<double, 3>& point) const {
-    double dx = point[0] - position_[0];
-    double dy = point[1] - position_[1];
-    double dz = point[2] - position_[2];
-    double squared_radius_vector = ANGSTROM_TO_BOHR_SQUARED * (dx * dx + dy * dy + dz * dz);
+    double dx = (point[0] - position_[0]) * ANGSTROM_TO_BOHR;
+    double dy = (point[1] - position_[1]) * ANGSTROM_TO_BOHR;
+    double dz = (point[2] - position_[2]) * ANGSTROM_TO_BOHR;
+    double squared_radius_vector = dx * dx + dy * dy + dz * dz;
 
     // if (squared_radius_vector > R_THRESHOLD)
     //     return 0.0;
@@ -81,13 +81,13 @@ double BasisFunction::p(const std::array<double, 3>& point) const {
     double res = 0.0;
     if (index_ == "x") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR * dx * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * dx * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "y") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR * dy * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * dy * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "z") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR * dz * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * dz * std::exp(-exponents_[i] * squared_radius_vector);
     } else {
         throw std::runtime_error("Class BasisFunction: Unknown p-orbital index");
     }
@@ -96,30 +96,32 @@ double BasisFunction::p(const std::array<double, 3>& point) const {
 }
 
 double BasisFunction::d(const std::array<double, 3>& point) const {
-    double dx = point[0] - position_[0];
-    double dy = point[1] - position_[1];
-    double dz = point[2] - position_[2];
-    double squared_radius_vector = ANGSTROM_TO_BOHR_SQUARED * (dx * dx + dy * dy + dz * dz);
+    // return 0.0;
+
+    double dx = (point[0] - position_[0]) * ANGSTROM_TO_BOHR;
+    double dy = (point[1] - position_[1]) * ANGSTROM_TO_BOHR;
+    double dz = (point[2] - position_[2]) * ANGSTROM_TO_BOHR;
+    double squared_radius_vector = dx * dx + dy * dy + dz * dz;
 
     double res = 0.0;
 
     if (index_ == "z2") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * (2*dz*dz - dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * (2*dz*dz - dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "xz") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * dx * dz * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * dx * dz * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "yz") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * dy * dz * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * dy * dz * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "x2y2") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * (dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * (dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "xy") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * ANGSTROM_TO_BOHR_SQUARED * dx * dy * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * dx * dy * std::exp(-exponents_[i] * squared_radius_vector);
     } else {
-        throw std::runtime_error("Class BasisFunction: Unknown p-orbital index");
+        throw std::runtime_error("Class BasisFunction: Unknown d-orbital index");
     }
     
     return res;

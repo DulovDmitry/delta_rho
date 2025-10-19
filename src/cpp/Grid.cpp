@@ -32,21 +32,31 @@ std::vector<double> Grid::calculate_scfp_values(const Molecule& molecule) {
     const int nocc = molecule.get_number_of_occupied_orbitals();    // число занятых орбиталей
     const int G = x.size();    // число точек в сетке
 
-    std::cout << M << std::endl;
-    std::cout << nocc << std::endl;
-    std::cout << G << std::endl;
+    std::cout << "Number of molecular orbitals: " << M << std::endl;
+    std::cout << "Number of occupied molecular orbitals: " << nocc << std::endl;
+    std::cout << "Number of grid points: " << G << std::endl;
 
     // std::ofstream file("debug.txt");
     // file << "C_occ\n\n";
 
-    std::vector<double> C_occ; // size M * nocc
+    // std::vector<double> C_occ; // size M * nocc
+    // auto orbs = molecule.get_orbitals();
+    // for (int i = 0; i < nocc; ++i) {
+    //     // std::cout << "MO number " << i << ": " << (orbs + i)->get_occupancy() << "\n";
+    //     auto coefs = (orbs + i)->get_coefficients();
+    //     for (const auto &a : coefs){
+    //         C_occ.push_back(a);
+    //         // file << a << "\n";
+    //     }
+    // }
+
+    std::vector<double> C_occ(M * nocc);
+
     auto orbs = molecule.get_orbitals();
-    for (int i = 0; i < nocc; ++i) {
-        // std::cout << "MO number " << i << ": " << (orbs + i)->get_occupancy() << "\n";
-        auto coefs = (orbs + i)->get_coefficients();
-        for (const auto &a : coefs){
-            C_occ.push_back(a);
-            // file << a << "\n";
+    for (int mu = 0; mu < M; ++mu) {
+        for (int i = 0; i < nocc; ++i) {
+            const auto &coefs = (orbs + i)->get_coefficients(); // coefs[mu]
+            C_occ[mu * nocc + i] = coefs[mu];
         }
     }
 
@@ -108,6 +118,12 @@ std::vector<double> Grid::calculate_scfp_values(const Molecule& molecule) {
             // std::cout << val << std::endl;
             scfp_values[batch_start + g] = 2.0 * val;
         }
+
+        // Предположим:
+        // Psi — вектор длины G * nocc (row-major: точки подряд, каждая строка — nocc орбиталей)
+        // G — количество точек в сетке
+        // nocc — число занятых орбиталей
+        // dV — объем вокселя (в Bohr³)
     }
 
     // file.close();
@@ -182,9 +198,9 @@ RegularOrthogonalGrid::RegularOrthogonalGrid(const Molecule& molecule, int x_poi
         (molecule.get_z_min() + molecule.get_z_max()) / 2.0
     };
     
-    double x_margin = 2.0;
-    double y_margin = 2.0;
-    double z_margin = 2.0;
+    double x_margin = 10.0;
+    double y_margin = 10.0;
+    double z_margin = 10.0;
 
     number_of_x_points = x_points_count;
     number_of_y_points = y_points_count;
@@ -229,7 +245,7 @@ void RegularOrthogonalGrid::create_grid(double x_length, double y_length, double
 // Простая реализация численного интеграла по сумме (аналог Simpson)
 double RegularOrthogonalGrid::scfp_integral() const {
     double sum = std::accumulate(scfp_values.begin(), scfp_values.end(), 0.0);
-    return sum * delta_V;
+    return sum * delta_V * ANGSTROM_TO_BOHR * ANGSTROM_TO_BOHR * ANGSTROM_TO_BOHR;
 }
 
 void RegularOrthogonalGrid::write_cube_file()
@@ -291,9 +307,9 @@ void RegularOrthogonalGrid::write_cube_file()
             for (int i = 0; i < number_of_x_points; ++i, ++idx) {
                 cube << std::scientific << std::setprecision(5)
                      << std::setw(13) << scfp_values[idx];
-                if ((i + 1) % 6 == 0) cube << "\n"; // 6 значений на строку
+                if ((idx + 1) % 6 == 0) cube << "\n"; // 6 значений на строку
             }
-            cube << "\n";
+            // cube << "\n";
         }
     }
 

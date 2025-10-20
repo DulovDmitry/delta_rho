@@ -226,8 +226,8 @@ void RegularOrthogonalGrid::create_grid(double x_length, double y_length, double
     delta_z = z_length / (z_points_count - 1);
 
     double x_min = center[0] - x_length / 2.0;
-    double y_min = center[0] - y_length / 2.0;
-    double z_min = center[0] - z_length / 2.0;
+    double y_min = center[1] - y_length / 2.0;
+    double z_min = center[2] - z_length / 2.0;
 
     for (int i = 0; i < x_points_count; ++i)
         x_points[i] = x_min + i * delta_x;

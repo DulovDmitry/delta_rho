@@ -6,9 +6,6 @@
 #include <unordered_map>
 #include <array>
 
-constexpr double ANGSTROM_TO_BOHR = 1.8897259886;
-constexpr double ANGSTROM_TO_BOHR_SQUARED = ANGSTROM_TO_BOHR * ANGSTROM_TO_BOHR;
-
 class BasisFunction {
 public:
     BasisFunction(const std::vector<double>& coefficients,

@@ -198,9 +198,9 @@ RegularOrthogonalGrid::RegularOrthogonalGrid(const Molecule& molecule, int x_poi
         (molecule.get_z_min() + molecule.get_z_max()) / 2.0
     };
     
-    double x_margin = 10.0;
-    double y_margin = 10.0;
-    double z_margin = 10.0;
+    double x_margin = 18.0;
+    double y_margin = 18.0;
+    double z_margin = 18.0;
 
     number_of_x_points = x_points_count;
     number_of_y_points = y_points_count;
@@ -221,12 +221,20 @@ void RegularOrthogonalGrid::create_grid(double x_length, double y_length, double
     y_points.resize(y_points_count);
     z_points.resize(z_points_count);
 
+    delta_x = x_length / (x_points_count - 1);
+    delta_y = y_length / (y_points_count - 1);
+    delta_z = z_length / (z_points_count - 1);
+
+    double x_min = center[0] - x_length / 2.0;
+    double y_min = center[0] - y_length / 2.0;
+    double z_min = center[0] - z_length / 2.0;
+
     for (int i = 0; i < x_points_count; ++i)
-        x_points[i] = center[0] - x_length / 2.0 + i * x_length / (x_points_count - 1);
+        x_points[i] = x_min + i * delta_x;
     for (int i = 0; i < y_points_count; ++i)
-        y_points[i] = center[1] - y_length / 2.0 + i * y_length / (y_points_count - 1);
+        y_points[i] = y_min + i * delta_y;
     for (int i = 0; i < z_points_count; ++i)
-        z_points[i] = center[2] - z_length / 2.0 + i * z_length / (z_points_count - 1);
+        z_points[i] = z_min + i * delta_z;
 
     for (double xv : x_points)
         for (double yv : y_points)
@@ -236,16 +244,13 @@ void RegularOrthogonalGrid::create_grid(double x_length, double y_length, double
                 z.push_back(zv);
             }
 
-    delta_x = x_length / (x_points_count - 1);
-    delta_y = y_length / (y_points_count - 1);
-    delta_z = z_length / (z_points_count - 1);
     delta_V = delta_x * delta_y * delta_z;
 }
 
 // Простая реализация численного интеграла по сумме (аналог Simpson)
 double RegularOrthogonalGrid::scfp_integral() const {
     double sum = std::accumulate(scfp_values.begin(), scfp_values.end(), 0.0);
-    return sum * delta_V * ANGSTROM_TO_BOHR * ANGSTROM_TO_BOHR * ANGSTROM_TO_BOHR;
+    return sum * delta_V;
 }
 
 void RegularOrthogonalGrid::write_cube_file()
@@ -270,33 +275,33 @@ void RegularOrthogonalGrid::write_cube_file()
 
     // ───── Первая строка: число атомов и начало сетки ─────
     cube << std::setw(5) << atoms.size()
-         << std::setw(12) << x0 * ANGSTROM_TO_BOHR
-         << std::setw(12) << y0 * ANGSTROM_TO_BOHR
-         << std::setw(12) << z0 * ANGSTROM_TO_BOHR << "\n";
+         << std::setw(12) << x0
+         << std::setw(12) << y0
+         << std::setw(12) << z0 << "\n";
 
     // ───── Следующие три строки: размерность и векторы шагов ─────
     cube << std::setw(5) << number_of_x_points
-         << std::setw(12) << delta_x * ANGSTROM_TO_BOHR
+         << std::setw(12) << delta_x
          << std::setw(12) << 0.0
          << std::setw(12) << 0.0 << "\n";
 
     cube << std::setw(5) << number_of_y_points
          << std::setw(12) << 0.0
-         << std::setw(12) << delta_y * ANGSTROM_TO_BOHR
+         << std::setw(12) << delta_y
          << std::setw(12) << 0.0 << "\n";
 
     cube << std::setw(5) << number_of_z_points
          << std::setw(12) << 0.0
          << std::setw(12) << 0.0
-         << std::setw(12) << delta_z * ANGSTROM_TO_BOHR << "\n";
+         << std::setw(12) << delta_z << "\n";
 
     // ───── Координаты атомов ─────
     for (const auto &a : atoms) {
         cube << std::setw(5) << a.get_charge()
              << std::setw(12) << 0.0     // формальный заряд (обычно 0)
-             << std::setw(12) << a.get_position()[0] * ANGSTROM_TO_BOHR
-             << std::setw(12) << a.get_position()[1] * ANGSTROM_TO_BOHR
-             << std::setw(12) << a.get_position()[2] * ANGSTROM_TO_BOHR << "\n";
+             << std::setw(12) << a.get_position()[0]
+             << std::setw(12) << a.get_position()[1]
+             << std::setw(12) << a.get_position()[2] << "\n";
     }
 
     // ───── Значения плотности ─────

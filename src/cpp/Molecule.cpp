@@ -90,9 +90,9 @@ void Molecule::read_atoms_from_molden() {
         label = tokens[0];
         number = std::stoi(tokens[1]);
         charge = std::stoi(tokens[2]);
-        x = std::stod(tokens[3]) * 0.529177249;
-        y = std::stod(tokens[4]) * 0.529177249;
-        z = std::stod(tokens[5]) * 0.529177249;
+        x = std::stod(tokens[3]);
+        y = std::stod(tokens[4]);
+        z = std::stod(tokens[5]);
 
         atoms.emplace_back(std::array<double, 3>{x, y, z}, label, number, charge);
     }

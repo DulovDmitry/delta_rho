@@ -52,7 +52,7 @@ double BasisFunction::s(const std::array<double, 3>& point) const {
     double dx = position_[0] - point[0];
     double dy = position_[1] - point[1];
     double dz = position_[2] - point[2];
-    double squared_radius_vector = ANGSTROM_TO_BOHR_SQUARED * (dx * dx + dy * dy + dz * dz);
+    double squared_radius_vector = dx * dx + dy * dy + dz * dz;
 
     // if (squared_radius_vector > R_THRESHOLD)
     //     return 0.0;
@@ -70,9 +70,9 @@ double BasisFunction::s(const std::array<double, 3>& point) const {
 }
 
 double BasisFunction::p(const std::array<double, 3>& point) const {
-    double dx = (point[0] - position_[0]) * ANGSTROM_TO_BOHR;
-    double dy = (point[1] - position_[1]) * ANGSTROM_TO_BOHR;
-    double dz = (point[2] - position_[2]) * ANGSTROM_TO_BOHR;
+    double dx = point[0] - position_[0];
+    double dy = point[1] - position_[1];
+    double dz = point[2] - position_[2];
     double squared_radius_vector = dx * dx + dy * dy + dz * dz;
 
     // if (squared_radius_vector > R_THRESHOLD)
@@ -98,9 +98,9 @@ double BasisFunction::p(const std::array<double, 3>& point) const {
 double BasisFunction::d(const std::array<double, 3>& point) const {
     // return 0.0;
 
-    double dx = (point[0] - position_[0]) * ANGSTROM_TO_BOHR;
-    double dy = (point[1] - position_[1]) * ANGSTROM_TO_BOHR;
-    double dz = (point[2] - position_[2]) * ANGSTROM_TO_BOHR;
+    double dx = point[0] - position_[0];
+    double dy = point[1] - position_[1];
+    double dz = point[2] - position_[2];
     double squared_radius_vector = dx * dx + dy * dy + dz * dz;
 
     double res = 0.0;

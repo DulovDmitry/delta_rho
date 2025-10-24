@@ -11,7 +11,7 @@ int main() {
 	std::vector<double> integrals;
 	std::vector<double> times;
 
-	for (int N = 10; N <= 500; N += 10) {
+	for (int N = 20; N <= 500; N += 20) {
 		auto grid = RegularOrthogonalGrid(mol, N, N, N);
 
 		auto tStart = std::chrono::high_resolution_clock::now();
@@ -29,6 +29,10 @@ int main() {
 		std::cout << "Integral value = " << val << "\n";
 		std::cout << "Time taken: " << elapsed.count() << "s\n\n";
 	}
+
+	 for (size_t i = 0; i < integrals.size(); ++i) {
+        std::cout << grid_points[i] << " : " << integrals[i] << " : " << times[i] << "\n";
+    }
 
 	return 0;
 	// ******

@@ -107,7 +107,8 @@ double BasisFunction::d(const std::array<double, 3>& point) const {
 
     if (index_ == "z2") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * (2*dz*dz - dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] * (dz*dz - 0.5*dx*dx - 0.5*dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
+            // res += coefficients_[i] * (2*dz*dz - dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "xz") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
             res += coefficients_[i] * dx * dz * std::exp(-exponents_[i] * squared_radius_vector);
@@ -116,7 +117,7 @@ double BasisFunction::d(const std::array<double, 3>& point) const {
             res += coefficients_[i] * dy * dz * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "x2y2") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
-            res += coefficients_[i] * (dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
+            res += coefficients_[i] / std::sqrt(4.0/3.0) * (dx*dx - dy*dy) * std::exp(-exponents_[i] * squared_radius_vector);
     } else if (index_ == "xy") {
         for (size_t i = 0; i < coefficients_.size(); ++i)
             res += coefficients_[i] * dx * dy * std::exp(-exponents_[i] * squared_radius_vector);

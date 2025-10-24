@@ -32,9 +32,9 @@ std::vector<double> Grid::calculate_scfp_values(const Molecule& molecule) {
     const int nocc = molecule.get_number_of_occupied_orbitals();    // число занятых орбиталей
     const int G = x.size();    // число точек в сетке
 
-    std::cout << "Number of molecular orbitals: " << M << std::endl;
-    std::cout << "Number of occupied molecular orbitals: " << nocc << std::endl;
-    std::cout << "Number of grid points: " << G << std::endl;
+    // std::cout << "Number of molecular orbitals: " << M << std::endl;
+    // std::cout << "Number of occupied molecular orbitals: " << nocc << std::endl;
+    // std::cout << "Number of grid points: " << G << std::endl;
 
     // std::ofstream file("debug.txt");
     // file << "C_occ\n\n";
@@ -67,7 +67,7 @@ std::vector<double> Grid::calculate_scfp_values(const Molecule& molecule) {
 
     batch_size = 5000;
 
-    std::cout << "batch_size = " << batch_size << "\n";
+    // std::cout << "batch_size = " << batch_size << "\n";
 
     // file << "\n\nChi\n\n";
     auto bf = molecule.get_basis_functions();
@@ -209,6 +209,12 @@ RegularOrthogonalGrid::RegularOrthogonalGrid(const Molecule& molecule, int x_poi
     double x_length = molecule.get_x_max() - molecule.get_x_min() + x_margin;
     double y_length = molecule.get_y_max() - molecule.get_y_min() + y_margin;
     double z_length = molecule.get_z_max() - molecule.get_z_min() + z_margin;
+
+    double x_points_per_bohr = x_points_count / x_length;
+    double y_points_per_bohr = y_points_count / y_length;
+    double z_points_per_bohr = z_points_count / z_length;
+
+    std::cout << "Grid. Points per 1 Bohr (x, y, x): (" << x_points_per_bohr << ", " << y_points_per_bohr << ", " << z_points_per_bohr << ")\n";
 
     create_grid(x_length, y_length, z_length, x_points_count, y_points_count, z_points_count, center_point);
 }

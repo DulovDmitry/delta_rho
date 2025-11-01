@@ -7,34 +7,34 @@ int main() {
 
 	// Benchmark
 	// ******
-	std::vector<int> grid_points;
-	std::vector<double> integrals;
-	std::vector<double> times;
+	// std::vector<int> grid_points;
+	// std::vector<double> integrals;
+	// std::vector<double> times;
 
-	for (int N = 20; N <= 500; N += 20) {
-		auto grid = RegularOrthogonalGrid(mol, N, N, N);
+	// for (int N = 20; N <= 500; N += 20) {
+	// 	auto grid = RegularOrthogonalGrid(mol, N, N, N);
 
-		auto tStart = std::chrono::high_resolution_clock::now();
-		auto res = grid.calculate_scfp_values(mol);
-		auto tEnd = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<double> elapsed = tEnd - tStart;
+	// 	auto tStart = std::chrono::high_resolution_clock::now();
+	// 	auto res = grid.calculate_scfp_values(mol);
+	// 	auto tEnd = std::chrono::high_resolution_clock::now();
+	// 	std::chrono::duration<double> elapsed = tEnd - tStart;
 
-		double val = grid.scfp_integral();
+	// 	double val = grid.scfp_integral();
 
-		grid_points.push_back(N);
-		integrals.push_back(val);
-		times.push_back(elapsed.count());
+	// 	grid_points.push_back(N);
+	// 	integrals.push_back(val);
+	// 	times.push_back(elapsed.count());
 
-		std::cout << "Grid: N = " << N << ", number of points = " << N*N*N << "\n";
-		std::cout << "Integral value = " << val << "\n";
-		std::cout << "Time taken: " << elapsed.count() << "s\n\n";
-	}
+	// 	std::cout << "Grid: N = " << N << ", number of points = " << N*N*N << "\n";
+	// 	std::cout << "Integral value = " << val << "\n";
+	// 	std::cout << "Time taken: " << elapsed.count() << "s\n\n";
+	// }
 
-	 for (size_t i = 0; i < integrals.size(); ++i) {
-        std::cout << grid_points[i] << " : " << integrals[i] << " : " << times[i] << "\n";
-    }
+	//  for (size_t i = 0; i < integrals.size(); ++i) {
+    //     std::cout << grid_points[i] << " : " << integrals[i] << " : " << times[i] << "\n";
+    // }
 
-	return 0;
+	// return 0;
 	// ******
 
 	auto grid = RegularOrthogonalGrid(mol, 100, 100, 100);
@@ -45,11 +45,15 @@ int main() {
 	std::chrono::duration<double> elapsed = tEnd - tStart;
 	std::cout << "Time taken: " << elapsed.count() << "s\n";
 
-	// grid.print_scfp_values();
-	// grid.write_cube_file();
+	grid.print_scfp_values();
+	grid.write_cube_file();
 
 	std::cout << "Integral of electron density\nCalculated = " << grid.scfp_integral() << "\nExpected = " << mol.get_number_of_occupied_orbitals()*2 << std::endl;
 	
+
+	auto grid2 = RegularOrthogonalGrid(20,20,20,200,200,200);
+	std::cout << grid2.d_func_integral() << "\n";
+
 
 	// auto p = mol.get_atoms()[0].get_position();
 	// tStart = std::chrono::high_resolution_clock::now();

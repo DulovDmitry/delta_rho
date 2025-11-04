@@ -1,5 +1,6 @@
 #include "Molecule.h"
 #include "Grid.h"
+#include "Density.h"
 
 int main() {
 	// auto mol = Molecule("../../H2.molden.input");
@@ -39,30 +40,12 @@ int main() {
 
 	auto grid = RegularOrthogonalGrid(mol, 100, 100, 100);
 
-	auto tStart = std::chrono::high_resolution_clock::now();
-	auto res = grid.calculate_scfp_values(mol);
-	auto tEnd = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> elapsed = tEnd - tStart;
-	std::cout << "Time taken: " << elapsed.count() << "s\n";
+	const auto density = Density(&mol, &grid);
+	density.write_to_cube();
+	double integral = density.integral();
 
-	grid.print_scfp_values();
-	grid.write_cube_file();
-
-	std::cout << "Integral of electron density\nCalculated = " << grid.scfp_integral() << "\nExpected = " << mol.get_number_of_occupied_orbitals()*2 << std::endl;
-	
-
-	auto grid2 = RegularOrthogonalGrid(20,20,20,200,200,200);
-	std::cout << grid2.d_func_integral() << "\n";
-
-
-	// auto p = mol.get_atoms()[0].get_position();
-	// tStart = std::chrono::high_resolution_clock::now();
-	// double dens = mol.scfp_density_at_point(p);
-	// tEnd = std::chrono::high_resolution_clock::now();
-	// elapsed = tEnd - tStart;
-	// std::cout << "Time taken: " << elapsed.count() << "s\n";
-	// std::cout << dens << "\n";
-
+	std::cout << "Electron density integral = " << integral << std::endl;
+	std::cout << "Expected value = " << mol.get_number_of_occupied_orbitals()*2 << std::endl;
 
 	return 0;
 }

@@ -22,8 +22,6 @@ public:
     Molecule(const std::string& molden_file_name);
     ~Molecule();
 
-    static Molecule from_molden(const std::string& molden_file_name);
-
     void read_atoms_from_molden();
     void read_basis_functions_from_molden();
     void read_orbitals_from_molden();

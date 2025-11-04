@@ -14,6 +14,7 @@ public:
                   const std::array<double, 3>& position,
                   const std::string& index = "",
                   const std::string& label = "");
+    ~BasisFunction() {};
 
     std::string repr() const;
 

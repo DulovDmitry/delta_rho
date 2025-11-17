@@ -4,28 +4,64 @@ Density::Density(Molecule* molecule, Grid* grid)
 	: molecule_(molecule),
 	  grid_(grid)
 {
-    std::cout << "Density values calculation" << std::endl;
+    const size_t G = grid_->x().size();
+    alpha_density_.resize(G);
+    beta_density_.resize(G);
+    spin_density_.resize(G);
+    electron_density_.resize(G);
+
+    if (molecule_->number_of_occupied_alpha_orbitals()) {
+        calculate_alpha_density();
+    }
+    if (molecule_->number_of_occupied_beta_orbitals()) {
+        calculate_beta_density();
+    }
+
+    if (molecule_->number_of_occupied_alpha_orbitals() && molecule_->number_of_beta_orbitals()) {
+        for (size_t i = 0; i < G; ++i) {
+            spin_density_[i] = alpha_density_[i] - beta_density_[i];
+            electron_density_[i] = alpha_density_[i] + beta_density_[i];
+        }
+    } else {
+        for (size_t i = 0; i < G; ++i) {
+            electron_density_[i] = alpha_density_[i];
+        }
+    }
+}
+
+void Density::calculate_alpha_density() {
+    std::cout << "Alpha density values calculation" << std::endl;
     auto tStart = std::chrono::high_resolution_clock::now();
-    calculate_values();
+    calculate_values("Alpha");
     auto tEnd = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = tEnd - tStart;
     std::cout << "Time taken: " << elapsed.count() << "s\n";
 }
 
-void Density::calculate_values() {
-    const int M = molecule_->get_number_of_orbitals();       // number of orbitals
-    const int nocc = molecule_->get_number_of_occupied_orbitals();    // number of occupied orbitals
+void Density::calculate_beta_density() {
+    std::cout << "Beta density values calculation" << std::endl;
+    auto tStart = std::chrono::high_resolution_clock::now();
+    calculate_values("Beta");
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = tEnd - tStart;
+    std::cout << "Time taken: " << elapsed.count() << "s\n";
+}
+
+void Density::calculate_values(std::string spin) {
+    const int M = (spin == "Alpha" ? molecule_->number_of_alpha_orbitals() : molecule_->number_of_beta_orbitals());       // number of orbitals
+    const int nocc = (spin == "Alpha" ? molecule_->number_of_occupied_alpha_orbitals() : molecule_->number_of_occupied_beta_orbitals());    // number of occupied orbitals
     const size_t G = grid_->x().size();    // number of grid points
 
-    values_.resize(G);
+    std::vector<double>& values = (spin == "Alpha" ? alpha_density_ : beta_density_);
 
     // std::cout << "Number of molecular orbitals: " << M << std::endl;
     // std::cout << "Number of occupied molecular orbitals: " << nocc << std::endl;
     // std::cout << "Number of grid points: " << G << std::endl;
 
-    std::vector<double> C_occ(M * nocc);
+    const auto bf = molecule_->get_basis_functions();
+    const auto orbs = (spin == "Alpha" ? molecule_->get_alpha_orbitals() : molecule_->get_beta_orbitals());
 
-    auto orbs = molecule_->get_orbitals();
+    std::vector<double> C_occ(M * nocc);
     for (int mu = 0; mu < M; ++mu) {
         for (int i = 0; i < nocc; ++i) {
             const auto &coefs = (orbs + i)->get_coefficients(); // coefs[mu]
@@ -33,15 +69,20 @@ void Density::calculate_values() {
         }
     }
 
-    const size_t batch_size = 5000;
-
-    const auto bf = molecule_->get_basis_functions();
+    std::vector<double> occupancies;
+    occupancies.resize(nocc);
+    for (int i = 0; i < nocc; ++i) {
+        occupancies[i] = (orbs+i)->get_occupancy();
+        // std::cout << i << ": " << occupancies[i] << std::endl;
+    }
 
     // omp_set_num_threads(8);
 
     const std::vector<double> x = grid_->x();
     const std::vector<double> y = grid_->y();
     const std::vector<double> z = grid_->z();
+
+    const size_t batch_size = 5000;
 
     #pragma omp parallel for schedule(dynamic)
     for (int batch_start = 0; batch_start < G; batch_start += batch_size) {
@@ -77,9 +118,9 @@ void Density::calculate_values() {
             double val = 0.0;
             for (int i = 0; i < nocc; ++i) {
                 double psi = Psi[g * nocc + i];
-                val += psi * psi;
+                val += occupancies[i] * psi * psi;
             }
-            values_[batch_start + g] = 2.0 * val;
+            values[batch_start + g] = val;
         }
     }
 }
@@ -152,7 +193,7 @@ void Density::write_to_cube(std::string filename) const
         for (int j = 0; j < rogrid->number_of_y_points(); ++j) {
             for (int i = 0; i < rogrid->number_of_x_points(); ++i, ++idx) {
                 cube << std::scientific << std::setprecision(5)
-                     << std::setw(13) << values_[idx];
+                     << std::setw(13) << electron_density_[idx];
                 if ((idx + 1) % 6 == 0) cube << "\n"; // 6 значений на строку
             }
             // cube << "\n";
@@ -166,10 +207,35 @@ void Density::write_to_cube(std::string filename) const
 double Density::integral() const {
     if ( dynamic_cast<RegularOrthogonalGrid*>(grid_) != nullptr ) {
         const auto rogrid = dynamic_cast<RegularOrthogonalGrid*>(grid_);
-        double sum = std::accumulate(values_.begin(), values_.end(), 0.0);
+        double sum = std::accumulate(electron_density_.begin(), electron_density_.end(), 0.0);
         return sum * rogrid->delta_V();
     }
     else {
         return 0.0;
     }
 }
+
+Density Density::operator-(const Density& other) const
+{
+    // Check grids
+    if (this->grid_ != other.grid_) {
+        throw std::runtime_error("Error: Cannot subtract density objects calculated on different grids");
+    }
+
+    Density result(*this);
+
+    const size_t G = result.electron_density_.size();
+    if (other.electron_density_.size() != G) {
+        throw std::runtime_error("Error: Density grids have different sizes");
+    }
+
+    for (size_t i = 0; i < G; ++i) {
+        result.alpha_density_[i] = this->alpha_density_[i] - other.alpha_density_[i];
+        result.beta_density_[i] = this->beta_density_[i] - other.beta_density_[i];
+        result.electron_density_[i] = this->electron_density_[i] - other.electron_density_[i];
+        result.spin_density_[i] = this->spin_density_[i] - other.spin_density_[i];
+    }
+
+    return result;
+}
+

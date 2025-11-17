@@ -20,7 +20,7 @@ class Molecule {
 public:
     Molecule();
     Molecule(const std::string& molden_file_name);
-    ~Molecule();
+    ~Molecule() = default;
 
     void read_atoms_from_molden();
     void read_basis_functions_from_molden();
@@ -31,7 +31,7 @@ public:
     double orbital_value_at_point(const std::array<double, 3>& point, size_t number) const;
 
     bool has_density_matrix() const { return !density_matrix.empty(); }
-    bool has_orbitals() const { return !orbitals.empty(); }
+    bool has_orbitals() const { return !alpha_orbitals.empty(); }
 
     // геттеры для границ молекулы
     double get_x_min() const { return x_min; }
@@ -42,23 +42,30 @@ public:
     double get_z_max() const { return z_max; }
 
     std::vector<Atom> get_atoms() const { return atoms; }
-    int get_number_of_orbitals() const { return orbitals.size(); }
-    int get_number_of_occupied_orbitals() const { return number_of_occupied_orbitals; }
-    const Orbital* get_orbitals() const { return orbitals.data(); }
+    int number_of_alpha_orbitals() const { return alpha_orbitals.size(); }
+    int number_of_beta_orbitals() const { return beta_orbitals.size(); }
+    int number_of_occupied_alpha_orbitals() const { return number_of_occupied_alpha_orbitals_; }
+    int number_of_occupied_beta_orbitals() const { return number_of_occupied_beta_orbitals_; }
+    int number_of_electrons() const { return number_of_electrons_; }
+    const Orbital* get_alpha_orbitals() const { return alpha_orbitals.data(); }
+    const Orbital* get_beta_orbitals() const { return beta_orbitals.data(); }
     const BasisFunction* get_basis_functions() const { return basis_functions.data(); }
 
 
 private:
     std::vector<Atom> atoms;
     std::vector<BasisFunction> basis_functions;
-    std::vector<Orbital> orbitals;
+    std::vector<Orbital> alpha_orbitals;
+    std::vector<Orbital> beta_orbitals;
     std::vector<std::vector<double>> density_matrix;
 
     std::string molden_data;
 
     double x_min, x_max, y_min, y_max, z_min, z_max;
 
-    int number_of_occupied_orbitals;
+    int number_of_occupied_alpha_orbitals_;
+    int number_of_occupied_beta_orbitals_;
+    int number_of_electrons_;
 
     // Вспомогательные функции
     std::string read_file(const std::string& filename) const;

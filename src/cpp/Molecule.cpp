@@ -10,7 +10,7 @@
 #include <iterator>
 
 Molecule::Molecule()
-    : x_min(0), x_max(0), y_min(0), y_max(0), z_min(0), z_max(0), number_of_occupied_orbitals(0) {}
+    : x_min(0), x_max(0), y_min(0), y_max(0), z_min(0), z_max(0), number_of_occupied_alpha_orbitals_(0) {}
 
 Molecule::Molecule(const std::string& molden_file_name) {
     std::cout << "** Loading a molden file ..." << std::endl;
@@ -38,7 +38,7 @@ Molecule::Molecule(const std::string& molden_file_name) {
     std::cout << "** Reading MO data ..." << std::endl;
     read_orbitals_from_molden();
     #ifdef DEBUG_MODE
-    for (auto o : orbitals) {
+    for (auto o : alpha_orbitals) {
         std::cout << o.repr() << std::endl;
     }
     std::cout << std::endl;
@@ -46,8 +46,6 @@ Molecule::Molecule(const std::string& molden_file_name) {
 
     std::cout << "A molden file has been read!" << std::endl;
 }
-
-Molecule::~Molecule() {}
 
 std::string Molecule::read_file(const std::string& filename) const {
     std::ifstream file(filename);
@@ -186,20 +184,13 @@ void Molecule::read_basis_functions_from_molden() {
 }
 
 void Molecule::read_orbitals_from_molden() {
-    std::cout << "begin\n";
     const std::string start_block = "[MO]";
-
-    std::cout << "finding MO block\n";
     size_t start_index = molden_data.find(start_block);
     if (start_index == std::string::npos)
         throw std::runtime_error("Class Molecule. There is no [MO] block in the file");
 
-    std::cout << "creating substring\n";
     start_index += start_block.size();
     std::string fragment = molden_data.substr(start_index);
-    // std::cout << fragment << std::endl;
-
-    std::cout << "dividing substring into blocks\n";
     // std::regex mo_split(R"((?=Sym=))");
     // std::sregex_token_iterator it(fragment.begin(), fragment.end(), mo_split, -1);
     // std::sregex_token_iterator end;
@@ -223,8 +214,8 @@ void Molecule::read_orbitals_from_molden() {
 
     std::cout << "Size of std::vector<std::string> blocks = " << blocks.size() << std::endl;
 
-    std::cout << "reading blocks\n";
-    int n = 0;
+    int occupied_alpha_orbitals_counter = 0;
+    int occupied_beta_orbitals_counter = 0;
     for (size_t i = 1; i < blocks.size(); ++i) {
         std::istringstream block(blocks[i]);
         std::string line;
@@ -234,16 +225,29 @@ void Molecule::read_orbitals_from_molden() {
         }
         if (lines.size() < 5) continue;
 
-        double occ = 0.0;
-        {
-            std::string occ_line = lines[3];
-            size_t pos = occ_line.find("=");
-            if (pos != std::string::npos)
-                occ = std::stod(occ_line.substr(pos + 1));
+        // read spin (Alpha or Beta)
+        std::string spin;
+        std::string spin_line = lines[2];
+        size_t spin_pos = spin_line.find("=");
+        if (spin_pos != std::string::npos) {
+            spin = spin_line.substr(spin_pos + 1);
+        }
+        while (spin[0] == ' ') {
+            spin = spin.substr(1);
         }
 
+        // read MO occupancy
+        double occ = 0.0;
+        std::string occ_line = lines[3];
+        size_t occ_pos = occ_line.find("=");
+        if (occ_pos != std::string::npos) {
+            occ = std::stod(occ_line.substr(occ_pos + 1));
+        }
+        number_of_electrons_ += static_cast<int>(occ);
+
         if (occ != 0) {
-            n++;
+            if (spin == "Alpha") occupied_alpha_orbitals_counter++;
+            if (spin == "Beta") occupied_beta_orbitals_counter++;
         }
 
         std::vector<double> coefs;
@@ -254,11 +258,18 @@ void Molecule::read_orbitals_from_molden() {
                 coefs.push_back(val);
         }
 
-        orbitals.emplace_back(occ, coefs);
+        if (spin == "Alpha") alpha_orbitals.emplace_back(occ, coefs);
+        if (spin == "Beta") beta_orbitals.emplace_back(occ, coefs);
     }
-    number_of_occupied_orbitals = n;
 
-    std::cout << "Size of std::vector<Orbital> orbitals = " << orbitals.size() << std::endl;
+    number_of_occupied_alpha_orbitals_ = occupied_alpha_orbitals_counter;
+    number_of_occupied_beta_orbitals_ = occupied_beta_orbitals_counter;
+
+    std::cout << "Size of std::vector<Orbital> alpha_orbitals = " << alpha_orbitals.size() << std::endl;
+    std::cout << "Size of std::vector<Orbital> beta_orbitals = " << beta_orbitals.size() << std::endl;
+
+    std::cout << "number_of_occupied_alpha_orbitals_" << occupied_alpha_orbitals_counter << std::endl;
+    std::cout << "number_of_occupied_beta_orbitals_"  << occupied_beta_orbitals_counter << std::endl;
 }
 
 double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const {
@@ -279,10 +290,10 @@ double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const
             }
         }
         return res;
-    } else if (!orbitals.empty()) {
+    } else if (!alpha_orbitals.empty()) {
         double res = 0.0;
         int i = 0;
-        for (const auto& orb : orbitals){
+        for (const auto& orb : alpha_orbitals){
             if (orb.get_occupancy() == 0) {
                 break;
             }
@@ -303,9 +314,9 @@ double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const
 }
 
 double Molecule::orbital_value_at_point(const std::array<double, 3>& point, size_t number) const {
-    if (number >= orbitals.size()) return 0.0;
+    if (number >= alpha_orbitals.size()) return 0.0;
 
-    const auto& coeffs = orbitals[number].get_coefficients();
+    const auto& coeffs = alpha_orbitals[number].get_coefficients();
 
     if (basis_functions.size() != coeffs.size()) {
         throw std::runtime_error("Class Molecule. The number of basis functions is not equal to the number of coefficients");

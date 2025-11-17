@@ -5,14 +5,14 @@
 int main() {
 	// auto mol = Molecule("../../H2.molden.input");
 	auto mol1 = Molecule("../../indene.molden.input");
-	auto mol2 = Molecule("../../indene_radcat.molden.input");
+	auto mol2 = Molecule("../../indene_radcat_vertical.molden.input");
 
-	auto grid = RegularOrthogonalGrid(mol1, 50, 50, 50);
+	auto grid = RegularOrthogonalGrid(mol1, 150, 130, 100);
 
 	const auto density1 = Density(&mol1, &grid);
 	const auto density2 = Density(&mol2, &grid);
 
-	auto density = density2 - density1;
+	auto density = density1 - density2;
 
 	density1.write_to_cube("d1.cub");
 	density2.write_to_cube("d2.cub");

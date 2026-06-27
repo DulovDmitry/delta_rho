@@ -87,6 +87,7 @@ void RegularOrthogonalGrid::create_grid(double x_length, double y_length, double
                                         int x_points_count, int y_points_count, int z_points_count,
                                         std::array<double, 3> center)
 {
+    std::cout << center[0] << " " << center[1] << " " << center[2] << std::endl;
     x_points_.resize(x_points_count);
     y_points_.resize(y_points_count);
     z_points_.resize(z_points_count);
@@ -130,6 +131,9 @@ IrregularOrthogonalGrid::IrregularOrthogonalGrid(double delta, double scaling_fa
     for (int i = 1; i < points; ++i)
         template_vals[i] = template_vals[i - 1] + std::pow(scaling_factor, i) * delta;
 
+    std::cout << "Parameters of the irregular grid:\n";
+    std::cout << "min delta = " << delta << "; max delta = " << template_vals[points-1] - template_vals[points-2] << std::endl;
+
     std::vector<double> positive(template_vals.begin(), template_vals.end());
     std::vector<double> negative(template_vals.begin(), template_vals.end());
     std::reverse(negative.begin(), negative.end());
@@ -157,6 +161,9 @@ IrregularOrthogonalGrid::IrregularOrthogonalGrid(double delta, double scaling_fa
     std::sort(x_points_.begin(), x_points_.end());
     std::sort(y_points_.begin(), y_points_.end());
     std::sort(z_points_.begin(), z_points_.end());
+
+    std::cout << "min x = " << *std::min_element(x_points_.begin(), x_points_.end()) \
+        << "; max x = " << *std::max_element(x_points_.begin(), x_points_.end()) << std::endl;
 
     for (double xv : x_points_)
         for (double yv : y_points_)

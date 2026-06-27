@@ -14,11 +14,12 @@ public:
                   const std::array<double, 3>& position,
                   const std::string& index = "",
                   const std::string& label = "");
-    ~BasisFunction() {};
+    ~BasisFunction() = default;
 
     std::string repr() const;
 
     double value_at_point(const std::array<double, 3>& point) const;
+    std::array<double, 3> position() const { return position_; }
 
 private:
     std::vector<double> coefficients_;

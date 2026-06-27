@@ -30,7 +30,6 @@ public:
     double scfp_density_at_point(const std::array<double, 3>& point) const;
     double orbital_value_at_point(const std::array<double, 3>& point, size_t number) const;
 
-    bool has_density_matrix() const { return !density_matrix.empty(); }
     bool has_orbitals() const { return !alpha_orbitals.empty(); }
 
     // геттеры для границ молекулы
@@ -47,6 +46,7 @@ public:
     int number_of_occupied_alpha_orbitals() const { return number_of_occupied_alpha_orbitals_; }
     int number_of_occupied_beta_orbitals() const { return number_of_occupied_beta_orbitals_; }
     int number_of_electrons() const { return number_of_electrons_; }
+    std::vector<int> BF_to_atoms_correspondence() const { return BF_to_atoms_correspondence_; }
     const Orbital* get_alpha_orbitals() const { return alpha_orbitals.data(); }
     const Orbital* get_beta_orbitals() const { return beta_orbitals.data(); }
     const BasisFunction* get_basis_functions() const { return basis_functions.data(); }
@@ -57,7 +57,7 @@ private:
     std::vector<BasisFunction> basis_functions;
     std::vector<Orbital> alpha_orbitals;
     std::vector<Orbital> beta_orbitals;
-    std::vector<std::vector<double>> density_matrix;
+    std::vector<int> BF_to_atoms_correspondence_; // has the same size as basis_functions; shows the correspondence between a basis function and atom number
 
     std::string molden_data;
 

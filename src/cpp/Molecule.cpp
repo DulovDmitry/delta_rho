@@ -168,19 +168,27 @@ void Molecule::read_basis_functions_from_molden() {
             auto position = atoms[block_index].get_position();
             if (shell == "s") {
                 basis_functions.emplace_back(coefficients, exponents, shell, position);
+                BF_to_atoms_correspondence_.push_back(block_index);
             } else if (shell == "p") {
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "x");
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "y");
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "z");
+                for (int i = 0; i < 3; ++i) {BF_to_atoms_correspondence_.push_back(block_index);}
             } else if (shell == "d") {
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "z2");
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "xz");
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "yz");
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "x2y2");
                 basis_functions.emplace_back(coefficients, exponents, shell, position, "xy");
+                for (int i = 0; i < 5; ++i) {BF_to_atoms_correspondence_.push_back(block_index);}
+            } else {
+                throw std::runtime_error("Unknown shell type");
             }
         }
     }
+    if (basis_functions.size() != BF_to_atoms_correspondence_.size()) throw std::runtime_error("Basis functions are not compatible");
+
+//    for (auto a : BF_to_atoms_correspondence_) std::cout << a << std::endl;
 }
 
 void Molecule::read_orbitals_from_molden() {
@@ -191,11 +199,6 @@ void Molecule::read_orbitals_from_molden() {
 
     start_index += start_block.size();
     std::string fragment = molden_data.substr(start_index);
-    // std::regex mo_split(R"((?=Sym=))");
-    // std::sregex_token_iterator it(fragment.begin(), fragment.end(), mo_split, -1);
-    // std::sregex_token_iterator end;
-    // std::vector<std::string> blocks(it, end);
-    // for (auto s : blocks) std::cout << s << std::endl;
 
     std::string delimiter = "Sym=";
     std::vector<std::string> blocks;
@@ -206,8 +209,6 @@ void Molecule::read_orbitals_from_molden() {
     while (end != std::string::npos) {
         end = fragment.find(delimiter, start);
         std::string block = delimiter + fragment.substr(start, end - start);
-        // std::cout << block << std::endl;
-
         blocks.push_back(block);
         start = end + delimiter.length();
     }
@@ -250,6 +251,7 @@ void Molecule::read_orbitals_from_molden() {
             if (spin == "Beta") occupied_beta_orbitals_counter++;
         }
 
+        // read MO coefficients
         std::vector<double> coefs;
         for (size_t j = 4; j < lines.size(); ++j) {
             std::istringstream ls(lines[j]);
@@ -273,24 +275,7 @@ void Molecule::read_orbitals_from_molden() {
 }
 
 double Molecule::scfp_density_at_point(const std::array<double, 3>& point) const {
-    if (!density_matrix.empty()) {
-        std::vector<double> values;
-        values.reserve(basis_functions.size());
-        for (const auto& bf : basis_functions) {
-            auto value = bf.value_at_point(point);
-            values.push_back(value);
-        }
-
-        // ρ = φᵀ P φ
-        double res = 0.0;
-        for (size_t i = 0; i < values.size(); ++i) {
-            for (size_t j = 0; j < values.size(); ++j) {
-                if (i < density_matrix.size() && j < density_matrix[i].size())
-                    res += values[i] * density_matrix[i][j] * values[j];
-            }
-        }
-        return res;
-    } else if (!alpha_orbitals.empty()) {
+    if (!alpha_orbitals.empty()) {
         double res = 0.0;
         int i = 0;
         for (const auto& orb : alpha_orbitals){

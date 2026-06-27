@@ -86,6 +86,7 @@ public:
     explicit IrregularOrthogonalGrid(double delta = 0.01, double scaling_factor = 1.3,
                                      int points = 20, std::array<double, 3> center = {0.0, 0.0, 0.0});
 
+
 };
 
 #endif // GRID_H

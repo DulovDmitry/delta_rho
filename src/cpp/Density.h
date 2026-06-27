@@ -11,7 +11,7 @@
 class Density
 {
 public:
-	Density(Molecule* molecule, Grid* grid);
+	Density(Molecule* molecule, Grid* grid, int atom_number = -1);
 	~Density() = default;
 
 	Density operator-(const Density& other) const;
@@ -29,6 +29,8 @@ private:
 
 	Molecule* molecule_;
 	Grid* grid_;
+	int atom_number_;
+
 	std::vector<double> alpha_density_;
 	std::vector<double> beta_density_;
 	std::vector<double> electron_density_;

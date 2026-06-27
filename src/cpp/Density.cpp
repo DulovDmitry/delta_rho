@@ -1,9 +1,18 @@
 #include "Density.h"
 
-Density::Density(Molecule* molecule, Grid* grid)
+Density::Density(Molecule* molecule, Grid* grid, const int atom_number)
 	: molecule_(molecule),
-	  grid_(grid)
+	  grid_(grid),
+      atom_number_(atom_number)
 {
+    if (molecule == nullptr) throw std::runtime_error("molecule is null");
+    if (grid == nullptr) throw std::runtime_error("grid is null");
+    if (atom_number > static_cast<int>(molecule->get_atoms().size())) {
+        std::cout << "atom number - " << atom_number << std::endl;
+        std::cout << "molecule->get_atoms().size() - " << molecule->get_atoms().size() << std::endl;
+        throw std::runtime_error("atom number out of range");
+    }
+
     const size_t G = grid_->x().size();
     alpha_density_.resize(G);
     beta_density_.resize(G);
@@ -54,6 +63,23 @@ void Density::calculate_values(std::string spin) {
 
     std::vector<double>& values = (spin == "Alpha" ? alpha_density_ : beta_density_);
 
+    std::vector<bool> mask(M, true);
+    if (atom_number_ != -1) {
+        for (int i = 0; i < M; ++i) {
+            mask[i] = (atom_number_ == molecule_->BF_to_atoms_correspondence()[i]);
+            // std::cout << mask[i] << " ";
+        }
+        // std::cout << std::endl;
+    }
+
+    // for (auto a: molecule_->BF_to_atoms_correspondence()) std::cout << a << " ";
+    // std::cout << std::endl;
+    //
+    // for (auto a: mask) std::cout << a << " ";
+    // std::cout << std::endl;
+
+    // for (auto a : mask) {std::cout << a << std::endl;}
+
     // std::cout << "Number of molecular orbitals: " << M << std::endl;
     // std::cout << "Number of occupied molecular orbitals: " << nocc << std::endl;
     // std::cout << "Number of grid points: " << G << std::endl;
@@ -64,7 +90,7 @@ void Density::calculate_values(std::string spin) {
     std::vector<double> C_occ(M * nocc);
     for (int mu = 0; mu < M; ++mu) {
         for (int i = 0; i < nocc; ++i) {
-            const auto &coefs = (orbs + i)->get_coefficients(); // coefs[mu]
+            const auto &coefs = orbs[i].get_coefficients(); // coefs[mu]
             C_occ[mu * nocc + i] = coefs[mu];
         }
     }
@@ -72,7 +98,7 @@ void Density::calculate_values(std::string spin) {
     std::vector<double> occupancies;
     occupancies.resize(nocc);
     for (int i = 0; i < nocc; ++i) {
-        occupancies[i] = (orbs+i)->get_occupancy();
+        occupancies[i] = orbs[i].get_occupancy();
         // std::cout << i << ": " << occupancies[i] << std::endl;
     }
 
@@ -97,8 +123,11 @@ void Density::calculate_values(std::string spin) {
             std::array<double, 3> point = {x[point_index], y[point_index], z[point_index]};
 
             for (int j = 0; j < M; ++j) {
-                Chi[i * M + j] =(bf + j)->value_at_point(point);
+                Chi[i * M + j] = mask[j] ? bf[j].value_at_point(point) : 0.0;
+                // if (mask[j]) std::cout << bf[j].position()[0] << " ";
+                // Chi[i * M + j] = (bf + j)->value_at_point(point);
             }
+            // std::cout << std::endl;
         }
 
         // 2. Multiplying Chi × C_occ → Psi
@@ -194,9 +223,9 @@ void Density::write_to_cube(std::string filename) const
             for (int i = 0; i < rogrid->number_of_x_points(); ++i, ++idx) {
                 cube << std::scientific << std::setprecision(5)
                      << std::setw(13) << electron_density_[idx];
-                if ((idx + 1) % 6 == 0) cube << "\n"; // 6 значений на строку
+                if ((i + 1) % 6 == 0) cube << "\n"; // 6 значений на строку
             }
-            // cube << "\n";
+            cube << "\n";
         }
     }
 
@@ -209,6 +238,53 @@ double Density::integral() const {
         const auto rogrid = dynamic_cast<RegularOrthogonalGrid*>(grid_);
         double sum = std::accumulate(electron_density_.begin(), electron_density_.end(), 0.0);
         return sum * rogrid->delta_V();
+    }
+    else if ( dynamic_cast<IrregularOrthogonalGrid*>(grid_) != nullptr ){
+        const auto irreggrid = dynamic_cast<IrregularOrthogonalGrid*>(grid_);
+        auto grid_x = irreggrid->x_points();
+        auto grid_y = irreggrid->y_points();
+        auto grid_z = irreggrid->z_points();
+        size_t N = grid_x.size();
+
+        double integral = 0;
+
+        if ((grid_x.size()*grid_y.size()*grid_z.size() != electron_density_.size())) {
+            std::cout << "Error! Grid size and density points are inconsistent!\n";
+            return integral;
+        }
+
+        for (size_t i = 0; i < N-1; ++i) {
+            for (size_t j = 0; j < N-1; ++j) {
+                for (size_t k = 0; k < N-1; ++k) {
+                    size_t index = k + j*N + i*N*N;
+                    integral += electron_density_[index] * (grid_z[k+1] - grid_z[k]);
+                }
+                integral *= (grid_y[j+1] - grid_y[j]);
+            }
+            integral *= (grid_x[i+1] - grid_x[i]);
+        }
+
+        for (size_t i = 0; i < N - 1; ++i) { // counter for grid_x
+            double dx = grid_x[i + 1] - grid_x[i];
+            double sum_j = 0.0;
+
+            for (size_t j = 0; j < N - 1; ++j) { // counter for grid_y
+                double dy = grid_y[j + 1] - grid_y[j];
+                double sum_k = 0.0;
+
+                for (size_t k = 0; k < N - 1; ++k) { // counter for grid_z
+                    double dz = grid_z[k + 1] - grid_z[k];
+                    size_t index = k + j*N + i*N*N;
+                    sum_k += electron_density_[index] * dz;
+                }
+
+                sum_j += sum_k * dy;
+            }
+
+            integral += sum_j * dx;
+        }
+
+        return integral;
     }
     else {
         return 0.0;

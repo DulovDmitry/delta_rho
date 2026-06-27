@@ -3,25 +3,51 @@
 #include "Density.h"
 
 int main() {
-	// auto mol = Molecule("../../H2.molden.input");
-	auto mol1 = Molecule("../../indene.molden.input");
-	auto mol2 = Molecule("../../indene_radcat_vertical.molden.input");
+	auto mol = Molecule("../../H2.molden.input");
 
-	auto grid = RegularOrthogonalGrid(mol1, 150, 130, 100);
+	auto grid =IrregularOrthogonalGrid(0.01, 1.04, 100, {0,0,0});
+	const auto density = Density(&mol, &grid);
 
-	const auto density1 = Density(&mol1, &grid);
-	const auto density2 = Density(&mol2, &grid);
+	std::cout << "integral = " << density.integral() << std::endl;
 
-	auto density = density1 - density2;
+	// проверка работы функции вычитания двух плотностей
+	/*{
+		auto mol1 = Molecule("../../indene.molden.input");
+		auto mol2 = Molecule("../../indene_radcat_vertical.molden.input");
 
-	density1.write_to_cube("d1.cub");
-	density2.write_to_cube("d2.cub");
-	density.write_to_cube("d.cub");
+		auto grid = RegularOrthogonalGrid(mol1, 100, 100, 100);
+		const auto density1 = Density(&mol1, &grid);
+		const auto density2 = Density(&mol2, &grid);
 
-	double integral = density.integral();
+		auto density = density1 - density2;
 
-	std::cout << "Electron density integral = " << integral << std::endl;
-	// std::cout << "Expected value = " << mol1.number_of_electrons() << std::endl;
+		density1.write_to_cube("d1.cub");
+		density2.write_to_cube("d2.cub");
+		density.write_to_cube("d.cub");
+
+		std::cout << "density1 - density2 integral = " << density.integral() << "\n";
+	}*/
+
+	// попытка рассчитать вклад в электронную плотность от отдельных атомов
+	/*{
+		double sum = 0;
+		for (int atom_number = 0; atom_number < mol1.get_atoms().size(); ++atom_number) {
+			// const int atom_number = 1;
+			auto atom_position = mol1.get_atoms()[atom_number].get_position();
+			auto grid_for_atom = RegularOrthogonalGrid(10, 10, 10, 100, 100, 100, atom_position);
+
+			const auto density1_atom = Density(&mol1, &grid_for_atom, atom_number);
+			double integral_atom = density1_atom.integral();
+			sum += integral_atom;
+
+			std::cout << "Electron density of 0th atom integral = " << integral_atom << std::endl;
+		}
+
+		std::cout << "Full electron density integral = " << density1.integral() << "\n";
+		// std::cout << "Electron density of atom = " << integral_atom << "\n";
+		std::cout << "Sum of atomic density integrals = " << sum << "\n";
+		std::cout << "Expected value = " << mol1.number_of_electrons() << std::endl;
+	}*/
 
 	return 0;
 }

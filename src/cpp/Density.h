@@ -12,14 +12,19 @@ class Density
 {
 public:
 	Density(Molecule* molecule, Grid* grid, int atom_number = -1);
+
 	~Density() = default;
 
 	Density operator-(const Density& other) const;
 
 	void write_to_cube(std::string filename = "density.cub") const;
+
 	double integral() const;
+	void transform();
+
 
 	std::vector<double> alpha_density() const { return alpha_density_; }
+
 	std::vector<double> beta_density() const { return beta_density_; }
 
 private:

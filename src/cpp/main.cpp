@@ -5,28 +5,35 @@
 int main() {
 	auto mol = Molecule("../../H2.molden.input");
 
-	auto grid =IrregularOrthogonalGrid(0.01, 1.04, 100, {0,0,0});
+	auto grid =IrregularOrthogonalGrid(0.01, 1.04, 50, {0,0,0});
 	const auto density = Density(&mol, &grid);
 
 	std::cout << "integral = " << density.integral() << std::endl;
 
+
 	// проверка работы функции вычитания двух плотностей
-	/*{
+	{
 		auto mol1 = Molecule("../../indene.molden.input");
 		auto mol2 = Molecule("../../indene_radcat_vertical.molden.input");
 
-		auto grid = RegularOrthogonalGrid(mol1, 100, 100, 100);
+		auto p = mol1.get_atoms()[0].get_position();
+
+		// auto grid = RegularOrthogonalGrid(10,10,10, 100, 100, 100, p);
+		auto grid =IrregularOrthogonalGrid(0.01, 50, p, 20);
+
 		const auto density1 = Density(&mol1, &grid);
 		const auto density2 = Density(&mol2, &grid);
 
 		auto density = density1 - density2;
 
-		density1.write_to_cube("d1.cub");
-		density2.write_to_cube("d2.cub");
-		density.write_to_cube("d.cub");
+		// density1.write_to_cube("d1.cub");
+		// density2.write_to_cube("d2.cub");
+		// density.write_to_cube("d.cub");
+		density.transform();
+		// density.write_to_cube("density_transformed_X.cub");
 
 		std::cout << "density1 - density2 integral = " << density.integral() << "\n";
-	}*/
+	}
 
 	// попытка рассчитать вклад в электронную плотность от отдельных атомов
 	/*{
@@ -52,7 +59,42 @@ int main() {
 	return 0;
 }
 
-void benchmark() {
+void benchmark_RegOgrid() {
+	auto mol1 = Molecule("../../indene.molden.input");
+	auto mol2 = Molecule("../../indene_radcat_vertical.molden.input");
+	auto p = mol1.get_atoms()[0].get_position();
+
+	std::vector<int> grid_points;
+	std::vector<double> integrals;
+	std::vector<double> times;
+
+	for (int N = 20; N <= 500; N += 20) {
+		auto grid =IrregularOrthogonalGrid(0.01, N, p, 20);
+
+		auto tStart = std::chrono::high_resolution_clock::now();
+		const auto density1 = Density(&mol1, &grid);
+		const auto density2 = Density(&mol2, &grid);
+		auto density = density1 - density2;
+		double val = density.integral();
+		auto tEnd = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed = tEnd - tStart;
+
+
+		grid_points.push_back(N);
+		integrals.push_back(val);
+		times.push_back(elapsed.count());
+
+		std::cout << "Grid: N = " << N << ", number of points = " << N*N*N << "\n";
+		std::cout << "Integral value = " << val << "\n";
+		std::cout << "Time taken: " << elapsed.count() << "s\n\n";
+	}
+
+	 for (size_t i = 0; i < integrals.size(); ++i) {
+	    std::cout << grid_points[i] << " : " << integrals[i] << " : " << times[i] << "\n";
+	}
+}
+
+void benchmark_IrrOgrid() {
 	auto mol = Molecule("../../indene.molden.input");
 
 	std::vector<int> grid_points;
@@ -78,7 +120,7 @@ void benchmark() {
 		std::cout << "Time taken: " << elapsed.count() << "s\n\n";
 	}
 
-	 for (size_t i = 0; i < integrals.size(); ++i) {
-	    std::cout << grid_points[i] << " : " << integrals[i] << " : " << times[i] << "\n";
+	for (size_t i = 0; i < integrals.size(); ++i) {
+		std::cout << grid_points[i] << " : " << integrals[i] << " : " << times[i] << "\n";
 	}
 }

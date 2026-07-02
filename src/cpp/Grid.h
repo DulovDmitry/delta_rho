@@ -22,6 +22,7 @@ public:
     std::vector<double> x() const { return x_; }
     std::vector<double> y() const { return y_; }
     std::vector<double> z() const { return z_; }
+    std::array<double, 3> center_point() const { return center_point_; }
 
 protected:
     Molecule mol;
@@ -69,7 +70,6 @@ public:
 
     explicit RegularOrthogonalGrid(const Molecule& molecule, int x_points = 20, int y_points = 20, int z_points = 20);
 
-    void create_grid(double x_length, double y_length, double z_length, int x_points_count, int y_points_count, int z_points_count, std::array<double, 3> center);
 
     double delta_x() const { return delta_x_; }
     double delta_y() const { return delta_y_; }
@@ -77,15 +77,29 @@ public:
     double delta_V() const { return delta_V_; }
 
 private:
+    void create_grid(double x_length, double y_length,double z_length,
+        int x_points_count, int y_points_count, int z_points_count,
+        std::array<double, 3> center);
+
     double delta_x_, delta_y_, delta_z_, delta_V_;
 };
 
 
 class IrregularOrthogonalGrid final : public OrthogonalGrid {
 public:
-    explicit IrregularOrthogonalGrid(double delta = 0.01, double scaling_factor = 1.3,
-                                     int points = 20, std::array<double, 3> center = {0.0, 0.0, 0.0});
+    explicit IrregularOrthogonalGrid(double initialDelta = 0.01, double scaling_factor = 1.1,
+                                     int numberOfPoints = 20, std::array<double, 3> center = {0.0, 0.0, 0.0});
 
+    explicit IrregularOrthogonalGrid(double initialDelta = 0.01, int numberOfPoints = 20,
+                                     std::array<double, 3> center = {0.0, 0.0, 0.0}, double xMax = 10);
+
+private:
+    enum gridTypes {
+        exponential,
+        power,
+    };
+
+    void createGrid(double initialDelta, double scaling_factor, int numberOfPoints, std::array<double, 3> center);
 
 };
 

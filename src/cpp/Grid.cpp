@@ -49,6 +49,9 @@ RegularOrthogonalGrid::RegularOrthogonalGrid(double x_length, double y_length, d
                                                  : delta_x_(0), delta_y_(0), delta_z_(0), delta_V_(0)
 {
     center_point_ = center;
+    number_of_x_points_ = x_points_count;
+    number_of_y_points_ = y_points_count;
+    number_of_z_points_ = z_points_count;
     create_grid(x_length, y_length, z_length, x_points_count, y_points_count, z_points_count, center);
 }
 
@@ -121,41 +124,64 @@ void RegularOrthogonalGrid::create_grid(double x_length, double y_length, double
 
 // -------- IrregularOrthogonalGrid --------
 
-IrregularOrthogonalGrid::IrregularOrthogonalGrid(double delta, double scaling_factor,
-                                                 int points, std::array<double, 3> center)
+IrregularOrthogonalGrid::IrregularOrthogonalGrid(double initialDelta, double scaling_factor,
+                                                 int numberOfPoints, std::array<double, 3> center)
 {
     center_point_ = center;
 
-    std::vector<double> template_vals(points);
-    template_vals[0] = delta;
-    for (int i = 1; i < points; ++i)
-        template_vals[i] = template_vals[i - 1] + std::pow(scaling_factor, i) * delta;
+    createGrid(initialDelta, scaling_factor, numberOfPoints, center);
+}
+
+IrregularOrthogonalGrid::IrregularOrthogonalGrid(double initialDelta, int numberOfPoints, std::array<double, 3> center,
+    double xMax)
+{
+    double A = xMax / initialDelta;
+    double alpha0 = 1;
+    double N = numberOfPoints;
+    // double scaling_factor = (std::log(A * (alpha0 + 1) / N) - alpha0 / (alpha0 + 1)) / (std::log(N) - 1 / (alpha0 + 1));
+
+    for (int i = 0; i < 3; ++i) {
+        alpha0 = (std::log(A * (alpha0 + 1) / N) - alpha0 / (alpha0 + 1)) / (std::log(N) - 1 / (alpha0 + 1));
+        std::cout << "Step " << i << ": scaling_factor = " << alpha0 << "\n";
+    }
+
+
+    createGrid(initialDelta, alpha0, numberOfPoints, center);
+}
+
+void IrregularOrthogonalGrid::createGrid(double initialDelta, double scaling_factor, int numberOfPoints,
+    std::array<double, 3> center)
+{
+    std::vector<double> template_vals(numberOfPoints);
+    template_vals[0] = initialDelta;
+    for (int i = 1; i < numberOfPoints; ++i)
+        template_vals[i] = template_vals[i - 1] + std::pow(i, scaling_factor) * initialDelta;
 
     std::cout << "Parameters of the irregular grid:\n";
-    std::cout << "min delta = " << delta << "; max delta = " << template_vals[points-1] - template_vals[points-2] << std::endl;
+    std::cout << "min delta = " << initialDelta << "; max delta = " << template_vals[numberOfPoints-1] - template_vals[numberOfPoints-2] << std::endl;
 
     std::vector<double> positive(template_vals.begin(), template_vals.end());
     std::vector<double> negative(template_vals.begin(), template_vals.end());
     std::reverse(negative.begin(), negative.end());
     for (double& v : negative) v *= -1;
 
-    x_points_.reserve(1 + positive.size() + negative.size());
+    x_points_.reserve(positive.size() + negative.size());
     y_points_.reserve(x_points_.size());
     z_points_.reserve(x_points_.size());
 
-    x_points_.push_back(center[0]);
-    y_points_.push_back(center[1]);
-    z_points_.push_back(center[2]);
+    // x_points_.push_back(center[0]);
+    // y_points_.push_back(center[1]);
+    // z_points_.push_back(center[2]);
 
     for (double v : negative) {
-        x_points_.push_back(center[0] + v);
-        y_points_.push_back(center[1] + v);
-        z_points_.push_back(center[2] + v);
+        x_points_.push_back(center[0] + v + initialDelta/2);
+        y_points_.push_back(center[1] + v + initialDelta/2);
+        z_points_.push_back(center[2] + v + initialDelta/2);
     }
     for (double v : positive) {
-        x_points_.push_back(center[0] + v);
-        y_points_.push_back(center[1] + v);
-        z_points_.push_back(center[2] + v);
+        x_points_.push_back(center[0] + v - initialDelta/2);
+        y_points_.push_back(center[1] + v - initialDelta/2);
+        z_points_.push_back(center[2] + v - initialDelta/2);
     }
 
     std::sort(x_points_.begin(), x_points_.end());

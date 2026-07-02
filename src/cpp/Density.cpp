@@ -38,6 +38,23 @@ Density::Density(Molecule* molecule, Grid* grid, const int atom_number)
     }
 }
 
+void Density::transform() {
+    const size_t G = grid_->x().size();
+    const std::vector<double>& X = grid_->x();
+    const std::vector<double>& Y = grid_->y();
+    const std::vector<double>& Z = grid_->z();
+    const double Xcenter = grid_->center_point()[0];
+    const double Ycenter = grid_->center_point()[1];
+    const double Zcenter = grid_->center_point()[2];
+
+    std::cout << "start transformation" << std::endl;
+    for (size_t i = 0; i < G; ++i) {
+        const double r = std::sqrt((X[i]-Xcenter)*(X[i]-Xcenter) + (Y[i]-Ycenter)*(Y[i]-Ycenter) + (Z[i]-Zcenter)*(Z[i]-Zcenter));
+        electron_density_[i] *= (X[i]-Xcenter) / std::pow(r, 3);
+    }
+    std::cout << "end transformation" << std::endl;
+}
+
 void Density::calculate_alpha_density() {
     std::cout << "Alpha density values calculation" << std::endl;
     auto tStart = std::chrono::high_resolution_clock::now();
@@ -61,7 +78,7 @@ void Density::calculate_values(std::string spin) {
     const int nocc = (spin == "Alpha" ? molecule_->number_of_occupied_alpha_orbitals() : molecule_->number_of_occupied_beta_orbitals());    // number of occupied orbitals
     const size_t G = grid_->x().size();    // number of grid points
 
-    std::vector<double>& values = (spin == "Alpha" ? alpha_density_ : beta_density_);
+    std::vector<double>& values = (spin == "Alpha" ? alpha_density_ : beta_density_); // link to the variable where the density will be written to
 
     std::vector<bool> mask(M, true);
     if (atom_number_ != -1) {
@@ -147,6 +164,7 @@ void Density::calculate_values(std::string spin) {
             double val = 0.0;
             for (int i = 0; i < nocc; ++i) {
                 double psi = Psi[g * nocc + i];
+                // val += occupancies[i] * psi * psi;
                 val += occupancies[i] * psi * psi;
             }
             values[batch_start + g] = val;
